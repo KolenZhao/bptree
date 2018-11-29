@@ -90,9 +90,6 @@ int BPTreeNode::remove(int key){
 				((LeafNode*)d.ptr)->keys[d.i] = suc.ptr->keys[suc.i];
 				((LeafNode*)d.ptr)->values[d.i] = ((LeafNode*)suc.ptr)->values[suc.i];
 				s->child[index + 1]->remove(suc.ptr->keys[suc.i]);
-				//s->child[index]->insertNonFull(suc.ptr->keys[suc.i],
-				//	((LeafNode*)suc.ptr)->values[suc.i]);
-				//s->child[index]->remove(key);
 			} else {
 				this->mergeChild(index);
 				s->child[index]->remove(key);
