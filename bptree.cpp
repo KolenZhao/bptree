@@ -7,16 +7,11 @@ NodeLocation::NodeLocation(BPTreeNode* ptr, int i) {
 	this->i = i;
 }
 
-BPTreeNode::BPTreeNode(int n, bool leaf) {
-	this->n = n;
-	this->leaf = leaf;
-}
-
 NodeLocation BPTreeNode::minNode() {
 	if (this->leaf) {
 		return NodeLocation(this, 0);
 	} else {
-		return this->child[0]->minNode();
+		return ((InterNode*)this)->child[0]->minNode();
 	}
 }
 
@@ -24,112 +19,141 @@ NodeLocation BPTreeNode::maxNode() {
 	if (this->leaf) {
 		return NodeLocation(this, this->n-1);
 	} else {
-		return this->child[this->n]->maxNode();
+		return ((InterNode*)this)->child[this->n]->maxNode();
 	}
 }
 
 NodeLocation BPTreeNode::precursor(int keyIndex) {
-	return this->child[keyIndex]->maxNode();
+	return ((InterNode*)this)->child[keyIndex]->maxNode();
 }
 
 NodeLocation BPTreeNode::successor(int keyIndex) {
-	return this->child[keyIndex+1]->minNode();
+	return ((InterNode*)this)->child[keyIndex+1]->minNode();
 }
 
-int BPTreeNode::simpleInsertLeft(int index, int key, int value, BPTreeNode* ptr) {
-	for (int i=this->n-1; i >= index; i--) {
-		this->keys[i+1] = this->keys[i];
-		this->values[i+1] = this->values[i];
-		this->child[i+2] = this->child[i+1];
-	}
-	this->child[index+1] = this->child[index];
+int BPTreeNode::mergeChild(int keyIndex) {
+	InterNode* s = (InterNode*)this;
+	BPTreeNode* y = s->child[keyIndex];
+	BPTreeNode* z = s->child[keyIndex+1];
 
-	this->keys[index] = key;
-	this->values[index] = value;
-	this->child[index] = ptr;
-	this->n += 1;
+	if (y->leaf) {
+		LeafNode* yy = (LeafNode*)y;
+		LeafNode* zz = (LeafNode*)z;
+		for (int i = 0; i < MINKEYS; i++) {
+			y->keys[y->n] = z->keys[i];
+			yy->values[y->n] = zz->values[i];
+			y->n++;
+		}
+		yy->next = zz->next;
+		delete(z);
+		s->simpleRemoveRight(keyIndex);
+	}
+	else {
+		InterNode* yy = (InterNode*)y;
+		InterNode* zz = (InterNode*)z;
+		y->keys[y->n] = this->keys[keyIndex];
+		y->n++;
+
+		for (int i = 0; i < MINKEYS; i++) {
+			y->keys[y->n] = z->keys[i];
+			yy->child[y->n] = zz->child[i];
+			y->n++;
+		}
+		yy->child[y->n] = zz->child[z->n];
+		delete(z);
+		s->simpleRemoveRight(keyIndex);
+	}
 	return 0;
 }
 
-int BPTreeNode::simpleInsertRight(int index, int key, int value, BPTreeNode* ptr) {
+InterNode::InterNode(int n) {
+	this->n = n;
+	this->leaf = false;
+}
+
+int InterNode::simpleInsertRight(int index, int key, BPTreeNode* ptr) {
 	for (int i = this->n - 1; i >= index; i--) {
 		this->keys[i + 1] = this->keys[i];
-		this->values[i + 1] = this->values[i];
 		this->child[i + 2] = this->child[i + 1];
 	}
 	this->keys[index] = key;
-	this->values[index] = value;
 	this->child[index + 1] = ptr;
 	this->n += 1;
 	return 0;
 }
 
+int InterNode::simpleInsertLeft(int index, int key, BPTreeNode* ptr) {
+	for (int i=this->n-1; i >= index; i--) {
+		this->keys[i+1] = this->keys[i];
+		this->child[i+2] = this->child[i+1];
+	}
+	this->child[index+1] = this->child[index];
 
-int BPTreeNode::leafRemove(int index) {
-	for (int i=index+1; i < this->n; i++) {
-		this->keys[i-1] = this->keys[i];
-		this->values[i-1] = this->values[i];
+	this->keys[index] = key;
+	this->child[index] = ptr;
+	this->n += 1;
+	return 0;
+}
+
+int InterNode::simpleRemoveRight(int index) {
+	for (int i = index + 1; i < this->n; i++) {
+		this->keys[i - 1] = this->keys[i];
+		this->child[i] = this->child[i + 1];
 	}
 	this->n -= 1;
 	return 0;
 }
 
-int BPTreeNode::simpleRemoveRight(int index) {
-	if (this->leaf) {
-		return this->leafRemove(index);
-	} else {
-		//delete(this->child[index + 1]);
-		for (int i = index + 1; i < this->n; i++) {
-			this->keys[i - 1] = this->keys[i];
-			this->values[i - 1] = this->values[i];
-			this->child[i] = this->child[i + 1];
-		}
-		this->n -= 1;
-		return 0;
+int InterNode::simpleRemoveLeft(int index) {
+	for (int i = index + 1; i < this->n; i++) {
+		this->keys[i - 1] = this->keys[i];
+		this->child[i - 1] = this->child[i];
 	}
+	this->child[this->n - 1] = this->child[this->n];
+	this->n -= 1;
+	return 0;
 }
 
-int BPTreeNode::simpleRemoveLeft(int index) {
-	if (this->leaf) {
-		return this->leafRemove(index);
+
+LeafNode::LeafNode(int n) {
+	this->n = n;
+	this->leaf = true;
+	this->next = NULL;
+}
+
+int LeafNode::simpleInsert(int index, int key, int value) {
+	for (int i = this->n - 1; i >= index; i--) {
+		this->keys[i + 1] = this->keys[i];
+		this->values[i + 1] = this->values[i];
+	}
+	this->keys[index] = key;
+	this->values[index] = value;
+	this->n += 1;
+	return 0;
+}
+
+int LeafNode::leafRemove(int index) {
+	for (int i = index + 1; i < this->n; i++) {
+		this->keys[i - 1] = this->keys[i];
+		this->values[i - 1] = this->values[i];
+	}
+	this->n -= 1;
+	return 0;
+}
+
+BPTreeNode* newNode(int n, bool leaf) {
+	if (leaf) {
+		return new LeafNode(n);
 	}
 	else {
-		//delete(this->child[index]);
-		for (int i = index + 1; i < this->n; i++) {
-			this->keys[i - 1] = this->keys[i];
-			this->values[i - 1] = this->values[i];
-			this->child[i - 1] = this->child[i];
-		}
-		this->child[this->n - 1] = this->child[this->n];
-		this->n -= 1;
-		return 0;
+		return new InterNode(n);
 	}
-}
-
-int BPTreeNode::mergeChild(int keyIndex) {
-	BPTreeNode* y = this->child[keyIndex];
-	BPTreeNode* z = this->child[keyIndex+1];
-	
-	y->keys[y->n] = this->keys[keyIndex];
-	y->values[y->n] = this->values[keyIndex];
-	y->n++;
-
-	for (int i=0; i<MINKEYS; i++) {
-		y->keys[y->n] = z->keys[i];
-		y->values[y->n] = z->values[i];
-		y->child[y->n] = z->child[i];
-		y->n++;
-	}
-	y->child[y->n] = z->child[z->n];
-	delete(z);
-	this->simpleRemoveRight(keyIndex);
-	return 0;
 }
 
 int find(int *list, int length, int key) {
     int bot = 0;
     int top = length - 1;
-    int mid;
+    int mid = 0;
     while (bot <= top) {
         mid = (bot + top) / 2;
         if (list[mid] == key) {
@@ -148,27 +172,35 @@ int find(int *list, int length, int key) {
 }
 
 int BPTreeNode::remove(int key){
-	if (this->n <= 0) {
+	if (this->n < 0) {
+		printf("Erorr: this->n < 0.\n");
+	}
+	if (this->n == 0) {
 		return 2;
 	}
 	int index = find(this->keys, this->n, key);
 	if (this->keys[index] == key) {
 		if (this->leaf) {
-			this->leafRemove(index);
+			((LeafNode*)this)->leafRemove(index);
 		} else {
-			if (this->child[index]->n >= MIN) {
+			InterNode* s = (InterNode*)this;
+			if (s->child[index]->n >= MIN) {
+				s->child[index]->remove(key);
 				NodeLocation pre = this->precursor(index);
 				this->keys[index] = pre.ptr->keys[pre.i];
-				this->values[index] = pre.ptr->values[pre.i];
-				this->child[index]->remove(pre.ptr->keys[pre.i]);
-			} else if (this->child[index+1]->n >= MIN) {
+			} else if (s->child[index+1]->n >= MIN) {
 				NodeLocation suc = this->successor(index);
 				this->keys[index] = suc.ptr->keys[suc.i];
-				this->values[index] = suc.ptr->values[suc.i];
-				this->child[index+1]->remove(suc.ptr->keys[suc.i]);
+				NodeLocation d = s->child[index]->getLocation(key);
+				((LeafNode*)d.ptr)->keys[d.i] = suc.ptr->keys[suc.i];
+				((LeafNode*)d.ptr)->values[d.i] = ((LeafNode*)suc.ptr)->values[suc.i];
+				s->child[index + 1]->remove(suc.ptr->keys[suc.i]);
+				//s->child[index]->insertNonFull(suc.ptr->keys[suc.i],
+				//	((LeafNode*)suc.ptr)->values[suc.i]);
+				//s->child[index]->remove(key);
 			} else {
 				this->mergeChild(index);
-				this->child[index]->remove(key);
+				s->child[index]->remove(key);
 			}
 		}
 	} else {
@@ -179,30 +211,54 @@ int BPTreeNode::remove(int key){
 		if (key > this->keys[index]) {
 			index += 1;
 		}
-		if (this->child[index]->n >= MIN) {
-			return this->child[index]->remove(key);
+		InterNode* s = (InterNode*)this;
+		if (s->child[index]->n >= MIN) {
+			return s->child[index]->remove(key);
 		} else {
-			if (index > 0 && this->child[index-1]->n >= MIN) {
-				BPTreeNode* prev = this->child[index-1];
-				this->child[index]->simpleInsertLeft(0,this->keys[index-1],
-					this->values[index-1], prev->child[prev->n]);
-				this->keys[index-1] = prev->keys[prev->n-1];
-				this->values[index-1] = prev->values[prev->n-1];
-				prev->simpleRemoveRight(prev->n-1);
-			} else if (index < this->n && this->child[index+1]->n >= MIN) {
-				BPTreeNode* next = this->child[index+1];
-				this->child[index]->simpleInsertRight(this->child[index]->n,this->keys[index],
-					this->values[index], next->child[0]);
-				this->keys[index] = next->keys[0];
-				this->values[index] = next->values[0];
-				next->simpleRemoveLeft(0);
-			} else {
-				if (index >= this->n) {
-					index -= 1;
+			if (s->child[index]->leaf) {
+				LeafNode* child = (LeafNode*)s->child[index];
+				if (index > 0 && s->child[index - 1]->n >= MIN) {
+					LeafNode* prev = (LeafNode*)s->child[index - 1];
+					NodeLocation pKey = s->child[index - 1]->getLocation(s->keys[index - 1]);
+					child->simpleInsert(0, this->keys[index - 1], ((LeafNode*)pKey.ptr)->values[pKey.i]);
+					this->keys[index - 1] = prev->keys[prev->n - 2];
+					prev->leafRemove(prev->n - 1);
 				}
-				this->mergeChild(index);
+				else if (index < this->n && s->child[index + 1]->n >= MIN) {
+					LeafNode* next = (LeafNode*)s->child[index + 1];
+					child->simpleInsert(s->child[index]->n, next->keys[0], next->values[0]);
+					this->keys[index] = next->keys[0];
+					next->leafRemove(0);
+				}
+				else {
+					if (index >= this->n) {
+						index -= 1;
+					}
+					this->mergeChild(index);
+				}
 			}
-			return this->child[index]->remove(key);
+			else {
+				InterNode* child = (InterNode*)s->child[index];
+				if (index > 0 && s->child[index - 1]->n >= MIN) {
+					InterNode* prev = (InterNode*)s->child[index - 1];
+					child->simpleInsertLeft(0, this->keys[index - 1], prev->child[prev->n]);
+					this->keys[index - 1] = prev->keys[prev->n - 1];
+					prev->simpleRemoveRight(prev->n - 1);
+				}
+				else if (index < this->n && s->child[index + 1]->n >= MIN) {
+					InterNode* next = (InterNode*)s->child[index + 1];
+					child->simpleInsertRight(s->child[index]->n, this->keys[index], next->child[0]);
+					this->keys[index] = next->keys[0];
+					next->simpleRemoveLeft(0);
+				}
+				else {
+					if (index >= this->n) {
+						index -= 1;
+					}
+					this->mergeChild(index);
+				}
+			}
+			return s->child[index]->remove(key);
 		}	
 	}
 	return 0;
@@ -210,54 +266,76 @@ int BPTreeNode::remove(int key){
 
 int BPTreeNode::get(int key) {
 	int index = -1;
-	BPTreeNode* node = this->search(key, &index);
+	LeafNode* node = this->search(key, &index);
 	if (!node) {
-		//printf("warning: key %d doesn't exists.\n", key);
 		return 0;
 	} else {
 		return node->values[index];
 	}
-	// printf("zkdebug: %d\n", (int)node);
+}
+
+NodeLocation BPTreeNode::getLocation(int key) {
+	int index = -1;
+	LeafNode* node = this->search(key, &index);
+	return NodeLocation(node, index);
 }
 
 int BPTreeNode::walk() {
-	for (int i = 0; i < this->n; i++) {
-		if (!this->leaf) {
-			this->child[i]->walk();
+	for (LeafNode* leaf = this->first(); leaf != NULL; leaf = leaf->next) {
+		for (int i = 0; i < leaf->n; i++) {
+			printf("key: %d, value: %d.\n", leaf->keys[i], leaf->values[i]);
 		}
-		printf("key: %d, value: %d.\n", this->keys[i], this->values[i]);
-	}
-	if (!this->leaf) {
-		this->child[this->n]->walk();
 	}
 	return 0;
 }
 
-int BPTreeNode::size() {
-	int sum = this->n;
-	if (sum < 0) {
-		printf("size error: %d", sum);
-	}
+LeafNode* BPTreeNode::first() {
 	if (!this->leaf) {
-		for (int i = 0; i <= this->n; i++) {
-			sum += this->child[i]->size();
-		}
+		return ((InterNode*)this)->child[0]->first();
+	}
+	else {
+		return (LeafNode*)this;
+	}
+}
+
+int BPTreeNode::size() {
+	int sum = 0;
+	for (LeafNode* leaf = this->first(); leaf != NULL; leaf = leaf->next) {
+		sum += leaf->n;
 	}
 	return sum;
 }
 
-BPTreeNode* BPTreeNode::search(int key, int* index){
-	int i = 0;
-	while (i < this->n && key > this->keys[i]) {
-		i += 1;
+int BPTreeNode::trueSize() {
+	int sum;
+	if (!this->leaf) {
+		sum = 0;
+		for (int i = 0; i <= this->n; i++) {
+			InterNode*s = (InterNode*)this;
+			sum += s->child[i]->trueSize();
+		}
 	}
-	if (i < this->n && key == this->keys[i]) {
-		*index = i;
-		return this;
-	} else if (this->leaf) {
-		return NULL;
+	else {
+		sum = this->n;
+	}
+	return sum;
+}
+
+LeafNode* BPTreeNode::search(int key, int* index){
+	int i = find(this->keys, this->n, key);
+	if (this->leaf) {
+		if (i < this->n && key == this->keys[i]) {
+			*index = i;
+			return (LeafNode*)this;
+		} else {
+			return NULL;
+		}
 	} else {
-		return this->child[i]->search(key, index);
+		if (key > this->keys[i]) {
+			i += 1;
+		}
+		InterNode* s = (InterNode*)this;
+		return s->child[i]->search(key, index);
 	}
 }
 
@@ -265,72 +343,76 @@ BPTreeNode* BPTreeNode::search(int key, int* index){
 int BPTreeNode::insertNonFull(int key, int value) {
 	int i = this->n - 1;
 	if (this->leaf) {
+		LeafNode* s = (LeafNode*)this;
 		while (i >= 0 && key < this->keys[i]) {
 			this->keys[i+1] = this->keys[i];
-			this->values[i+1] = this->values[i];
+			s->values[i+1] = s->values[i];
 			i -= 1;
 		}
 		this->keys[i+1] = key;
-		this->values[i+1] = value;
+		s->values[i+1] = value;
 		this->n += 1;
 	} else {
-		while (i >= 0 && key < this->keys[i]) {
-			i -= 1;
+		int i = find(this->keys, this->n, key);
+		if (key > this->keys[i]) {
+			i += 1;
 		}
-		i += 1;
-		if (this->child[i]->n == MAX - 1) {
+		InterNode* s = (InterNode*)this;
+		if (s->child[i]->n == MAX - 1) {
 			this->splitChild(i);
 			if (key > this->keys[i]) {
 				i += 1;
 			}
 		}
-		this->child[i]->insertNonFull(key, value);
+		s->child[i]->insertNonFull(key, value);
 	}
 	return 0;
 }
 
 int BPTreeNode::splitChild(int index) {
-	BPTreeNode* y = this->child[index];
-	BPTreeNode* z = new BPTreeNode(MINKEYS, y->leaf);
-	for (int i=0; i < MINKEYS; i++) {
-		z->keys[i] = y->keys[i + MIN];
-		z->values[i] = y->values[i + MIN];
-	}
-	if (!y->leaf) {
-		for (int i=0; i < MIN; i++) {
-			z->child[i] = y->child[i + MIN];
+	InterNode* s = (InterNode*)this;
+	BPTreeNode* y = s->child[index];
+	BPTreeNode* z = newNode(MINKEYS, y->leaf);
+	
+	if (y->leaf) {
+		y->n = MIN;
+		LeafNode* yy = (LeafNode*)y;
+		LeafNode* zz = (LeafNode*)z;
+		for (int i = 0; i < MINKEYS; i++) {
+			z->keys[i] = y->keys[i + MIN];
+			zz->values[i] = yy->values[i + MIN];
 		}
+		zz->next = yy->next;
+		yy->next = zz;
 	}
-	y->n = MINKEYS;
-	for (int i=this->n; i > index; i--) {
-		this->child[i + 1] = this->child[i];
+	else {
+		y->n = MINKEYS;
+		InterNode* yy = (InterNode*)y;
+		InterNode* zz = (InterNode*)z;
+		for (int i = 0; i < MINKEYS; i++) {
+			z->keys[i] = y->keys[i + MIN];
+			zz->child[i] = yy->child[i + MIN];
+		}
+		zz->child[MINKEYS] = yy->child[MAX - 1];
 	}
-	this->child[index + 1] = z;
-	for (int i=this->n - 1; i >= index; i--) {
-		this->keys[i + 1] = this->keys[i];
-		this->values[i + 1] = this->values[i];
-	}
-	this->keys[index] = y->keys[MINKEYS];
-	this->values[index] = y->values[MINKEYS];
-	this->n += 1;
+	s->simpleInsertRight(index, y->keys[MINKEYS], z);
 	return 0;
 }
 
-
 BPTree::BPTree() {
-	BPTreeNode* x = new BPTreeNode(0, true);
+	BPTreeNode* x = newNode(0, true);
 	this->root = x;
 }
 
 int BPTree::insert(int key, int value) {
 	BPTreeNode* root = this->root;
 	int index = -1;
-	BPTreeNode* node = this->root->search(key, &index);
+	LeafNode* node = this->root->search(key, &index);
 	if (node) {
 		node->values[index] = value;
 	} else {
 		if (root->n == MAX - 1) {
-			BPTreeNode* s = new BPTreeNode(0, false);
+			InterNode* s = new InterNode(0);
 			this->root = s;
 			s->child[0] = root;
 			s->splitChild(0);
@@ -345,7 +427,8 @@ int BPTree::insert(int key, int value) {
 int BPTree::remove(int key) {
 	int v = this->root->remove(key);
 	if (this->root->n <= 0 && !this->root->leaf) {
-		BPTreeNode* newRoot = this->root->child[0];
+		InterNode* r = (InterNode*)this->root;
+		BPTreeNode* newRoot = r->child[0];
 		delete(this->root);
 		this->root = newRoot;
 	}

@@ -16,7 +16,7 @@ int leakTest() {
 	int* testList = (int*)malloc(sizeof(int) * TEST_MAX);
 	srand((unsigned int)time(NULL));
 
-	for (int c = 0; c < 65535; c++) {
+	for (int c = 0; c < 65536; c++) {
 		for (int i = 0; i < TEST_MAX; i++) {
 			int r = (rand() << 16) | rand();
 			testList[i] = r;
@@ -26,12 +26,6 @@ int leakTest() {
 		}
 		int size = T->root->size();
 		printf("size: %d. ## ", size);
-		//for (int i = 0; i < TEST_MAX; i++) {
-		//	int v = T->root->get(testList[i]);
-		//	if (v != testList[i] / 2) {
-		//		printf("ERROR: Value wrong!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!########################\n");
-		//	}
-		//}
 		int re = 0;
 		int empty = 0;
 		for (int i = 0; i < TEST_MAX; i++) {
@@ -71,14 +65,10 @@ int funcTest() {
 
 	for (int i = 0; i < TEST_MAX; i++) {
 		T->insert(testList[i], testList[i] / 2);
+		//printf("size: %d\n", T->root->trueSize());
 	}
 	int size = T->root->size();
 	printf("size: %d\n", size);
-
-
-	//NodeLocation max = T->root->maxNode();
-	//NodeLocation min = T->root->minNode();
-	//printf("max: %d, min: %d\n", max.ptr->keys[max.i], min.ptr->keys[min.i]);
 
 	for (int i = 0; i < TEST_MAX; i++) {
 		int v = T->root->get(testList[i]);
@@ -91,11 +81,16 @@ int funcTest() {
 	int re = 0;
 	int empty = 0;
 	for (int i = 0; i < TEST_MAX; i++) {
+		if (i == 81) {
+			re = re;
+		}
 
-		//for (int j = i; j < TEST_MAX; j++) {
-		//	int v = T->root->get(testList[j]);
-		//	if (v != testList[j] / 2) {
-		//		printf("ERROR: 2 Value wrong!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!########################\n");
+		//if (i == TEST_MAX / 2) {
+		//	for (int j = i; j < TEST_MAX; j++) {
+		//		int v = T->root->get(testList[j]);
+		//		if (v != testList[j] / 2) {
+		//			printf("ERROR: 2 Value wrong!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!########################\n");
+		//		}
 		//	}
 		//}
 
@@ -114,16 +109,17 @@ int funcTest() {
 		else {
 
 		}
-
-		//printf("size: %d\n", T->root->size());
+		//int size = T->root->size();
+		//int trueSize = T->root->trueSize();
+		//if (trueSize != size) {
+		//	printf("Erorr: SIZE WRONG. size != trueSize. size: %d, trueSize: %d", size, trueSize);
+		//}
+		//printf("size: %d\n", trueSize);
 		//for (int ii = 0; ii < TEST_MAX; ii++) {
 		//	printf("%d, ", testList[ii]);
 		//}
 	}
-	//T->remove(testList[0]);
-	//printf("size: %d\n", T->root->size());
 
-	//T->root->walk();
 	printf("empty time: %d, redundant time: %d, sum: %d\n", empty, re, size + empty + re);
 	printf("size: %d\n", T->root->size());
 
@@ -131,9 +127,9 @@ int funcTest() {
 }
 
 int main() {
-	//leakTest();
+	leakTest();
 
-	funcTest();
+	//funcTest();
 
 	//printf("%d\n", sizeof(BTreeNode));
 	system("pause");
