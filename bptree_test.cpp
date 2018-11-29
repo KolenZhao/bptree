@@ -1,4 +1,3 @@
-
 #include "bptree_test.h"
 #include "bptree.h"
 
@@ -7,7 +6,7 @@
 #include <time.h>
 
 
-#define TEST_MAX 1000000
+#define TEST_MAX 10000000
 
 
 int leakTest() {
@@ -127,9 +126,9 @@ int funcTest() {
 }
 
 int main() {
-	leakTest();
+	//leakTest();
 
-	//funcTest();
+	funcTest();
 
 	//printf("%d\n", sizeof(BTreeNode));
 	system("pause");

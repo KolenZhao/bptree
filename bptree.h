@@ -1,4 +1,3 @@
-
 #define MIN (64)
 #define MAX (MIN * 2)
 #define MINKEYS (MIN - 1)
@@ -55,7 +54,6 @@ struct LeafNode:BPTreeNode {
 	int simpleInsert(int index, int key, int value);
 	int leafRemove(int index);
 };
-
 
 struct BPTree {
     BPTreeNode* root;

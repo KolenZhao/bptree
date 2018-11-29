@@ -66,111 +66,6 @@ int BPTreeNode::mergeChild(int keyIndex) {
 	return 0;
 }
 
-InterNode::InterNode(int n) {
-	this->n = n;
-	this->leaf = false;
-}
-
-int InterNode::simpleInsertRight(int index, int key, BPTreeNode* ptr) {
-	for (int i = this->n - 1; i >= index; i--) {
-		this->keys[i + 1] = this->keys[i];
-		this->child[i + 2] = this->child[i + 1];
-	}
-	this->keys[index] = key;
-	this->child[index + 1] = ptr;
-	this->n += 1;
-	return 0;
-}
-
-int InterNode::simpleInsertLeft(int index, int key, BPTreeNode* ptr) {
-	for (int i=this->n-1; i >= index; i--) {
-		this->keys[i+1] = this->keys[i];
-		this->child[i+2] = this->child[i+1];
-	}
-	this->child[index+1] = this->child[index];
-
-	this->keys[index] = key;
-	this->child[index] = ptr;
-	this->n += 1;
-	return 0;
-}
-
-int InterNode::simpleRemoveRight(int index) {
-	for (int i = index + 1; i < this->n; i++) {
-		this->keys[i - 1] = this->keys[i];
-		this->child[i] = this->child[i + 1];
-	}
-	this->n -= 1;
-	return 0;
-}
-
-int InterNode::simpleRemoveLeft(int index) {
-	for (int i = index + 1; i < this->n; i++) {
-		this->keys[i - 1] = this->keys[i];
-		this->child[i - 1] = this->child[i];
-	}
-	this->child[this->n - 1] = this->child[this->n];
-	this->n -= 1;
-	return 0;
-}
-
-
-LeafNode::LeafNode(int n) {
-	this->n = n;
-	this->leaf = true;
-	this->next = NULL;
-}
-
-int LeafNode::simpleInsert(int index, int key, int value) {
-	for (int i = this->n - 1; i >= index; i--) {
-		this->keys[i + 1] = this->keys[i];
-		this->values[i + 1] = this->values[i];
-	}
-	this->keys[index] = key;
-	this->values[index] = value;
-	this->n += 1;
-	return 0;
-}
-
-int LeafNode::leafRemove(int index) {
-	for (int i = index + 1; i < this->n; i++) {
-		this->keys[i - 1] = this->keys[i];
-		this->values[i - 1] = this->values[i];
-	}
-	this->n -= 1;
-	return 0;
-}
-
-BPTreeNode* newNode(int n, bool leaf) {
-	if (leaf) {
-		return new LeafNode(n);
-	}
-	else {
-		return new InterNode(n);
-	}
-}
-
-int find(int *list, int length, int key) {
-    int bot = 0;
-    int top = length - 1;
-    int mid = 0;
-    while (bot <= top) {
-        mid = (bot + top) / 2;
-        if (list[mid] == key) {
-            return mid;
-        } else if (key > list[mid-1] && key <= list[mid]) {
-            return mid;
-        } else {
-            if (list[mid] > key) {
-                top = mid - 1;
-            } else {
-                bot = mid + 1;
-            }
-        }
-    }
-    return mid;
-}
-
 int BPTreeNode::remove(int key){
 	if (this->n < 0) {
 		printf("Erorr: this->n < 0.\n");
@@ -399,6 +294,83 @@ int BPTreeNode::splitChild(int index) {
 	return 0;
 }
 
+
+InterNode::InterNode(int n) {
+	this->n = n;
+	this->leaf = false;
+}
+
+int InterNode::simpleInsertRight(int index, int key, BPTreeNode* ptr) {
+	for (int i = this->n - 1; i >= index; i--) {
+		this->keys[i + 1] = this->keys[i];
+		this->child[i + 2] = this->child[i + 1];
+	}
+	this->keys[index] = key;
+	this->child[index + 1] = ptr;
+	this->n += 1;
+	return 0;
+}
+
+int InterNode::simpleInsertLeft(int index, int key, BPTreeNode* ptr) {
+	for (int i = this->n - 1; i >= index; i--) {
+		this->keys[i + 1] = this->keys[i];
+		this->child[i + 2] = this->child[i + 1];
+	}
+	this->child[index + 1] = this->child[index];
+
+	this->keys[index] = key;
+	this->child[index] = ptr;
+	this->n += 1;
+	return 0;
+}
+
+int InterNode::simpleRemoveRight(int index) {
+	for (int i = index + 1; i < this->n; i++) {
+		this->keys[i - 1] = this->keys[i];
+		this->child[i] = this->child[i + 1];
+	}
+	this->n -= 1;
+	return 0;
+}
+
+int InterNode::simpleRemoveLeft(int index) {
+	for (int i = index + 1; i < this->n; i++) {
+		this->keys[i - 1] = this->keys[i];
+		this->child[i - 1] = this->child[i];
+	}
+	this->child[this->n - 1] = this->child[this->n];
+	this->n -= 1;
+	return 0;
+}
+
+
+LeafNode::LeafNode(int n) {
+	this->n = n;
+	this->leaf = true;
+	this->next = NULL;
+}
+
+int LeafNode::simpleInsert(int index, int key, int value) {
+	for (int i = this->n - 1; i >= index; i--) {
+		this->keys[i + 1] = this->keys[i];
+		this->values[i + 1] = this->values[i];
+	}
+	this->keys[index] = key;
+	this->values[index] = value;
+	this->n += 1;
+	return 0;
+}
+
+int LeafNode::leafRemove(int index) {
+	for (int i = index + 1; i < this->n; i++) {
+		this->keys[i - 1] = this->keys[i];
+		this->values[i - 1] = this->values[i];
+	}
+	this->n -= 1;
+	return 0;
+}
+
+
 BPTree::BPTree() {
 	BPTreeNode* x = newNode(0, true);
 	this->root = x;
@@ -433,4 +405,38 @@ int BPTree::remove(int key) {
 		this->root = newRoot;
 	}
 	return v;
+}
+
+
+BPTreeNode* newNode(int n, bool leaf) {
+	if (leaf) {
+		return new LeafNode(n);
+	}
+	else {
+		return new InterNode(n);
+	}
+}
+
+int find(int *list, int length, int key) {
+	int bot = 0;
+	int top = length - 1;
+	int mid = 0;
+	while (bot <= top) {
+		mid = (bot + top) / 2;
+		if (list[mid] == key) {
+			return mid;
+		}
+		else if (key > list[mid - 1] && key <= list[mid]) {
+			return mid;
+		}
+		else {
+			if (list[mid] > key) {
+				top = mid - 1;
+			}
+			else {
+				bot = mid + 1;
+			}
+		}
+	}
+	return mid;
 }
