@@ -44,6 +44,7 @@ struct InterNode:BPTreeNode {
 	int simpleInsertLeft(int index, int key, BPTreeNode* ptr);
 	int simpleRemoveRight(int index);
 	int simpleRemoveLeft(int index);
+	int rebalance(int index);
 };
 
 struct LeafNode:BPTreeNode {

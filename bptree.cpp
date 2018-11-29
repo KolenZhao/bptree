@@ -66,10 +66,7 @@ int BPTreeNode::mergeChild(int keyIndex) {
 	return 0;
 }
 
-int BPTreeNode::remove(int key){
-	if (this->n < 0) {
-		printf("Erorr: this->n < 0.\n");
-	}
+int BPTreeNode::remove(int key) {
 	if (this->n == 0) {
 		return 2;
 	}
@@ -95,11 +92,11 @@ int BPTreeNode::remove(int key){
 				s->child[index]->remove(key);
 			}
 		}
+		return 0;
 	} else {
 		if (this->leaf) {
 			return 1;
 		}
-
 		if (key > this->keys[index]) {
 			index += 1;
 		}
@@ -107,53 +104,9 @@ int BPTreeNode::remove(int key){
 		if (s->child[index]->n >= MIN) {
 			return s->child[index]->remove(key);
 		} else {
-			if (s->child[index]->leaf) {
-				LeafNode* child = (LeafNode*)s->child[index];
-				if (index > 0 && s->child[index - 1]->n >= MIN) {
-					LeafNode* prev = (LeafNode*)s->child[index - 1];
-					NodeLocation pKey = s->child[index - 1]->getLocation(s->keys[index - 1]);
-					child->simpleInsert(0, this->keys[index - 1], ((LeafNode*)pKey.ptr)->values[pKey.i]);
-					this->keys[index - 1] = prev->keys[prev->n - 2];
-					prev->leafRemove(prev->n - 1);
-				}
-				else if (index < this->n && s->child[index + 1]->n >= MIN) {
-					LeafNode* next = (LeafNode*)s->child[index + 1];
-					child->simpleInsert(s->child[index]->n, next->keys[0], next->values[0]);
-					this->keys[index] = next->keys[0];
-					next->leafRemove(0);
-				}
-				else {
-					if (index >= this->n) {
-						index -= 1;
-					}
-					this->mergeChild(index);
-				}
-			}
-			else {
-				InterNode* child = (InterNode*)s->child[index];
-				if (index > 0 && s->child[index - 1]->n >= MIN) {
-					InterNode* prev = (InterNode*)s->child[index - 1];
-					child->simpleInsertLeft(0, this->keys[index - 1], prev->child[prev->n]);
-					this->keys[index - 1] = prev->keys[prev->n - 1];
-					prev->simpleRemoveRight(prev->n - 1);
-				}
-				else if (index < this->n && s->child[index + 1]->n >= MIN) {
-					InterNode* next = (InterNode*)s->child[index + 1];
-					child->simpleInsertRight(s->child[index]->n, this->keys[index], next->child[0]);
-					this->keys[index] = next->keys[0];
-					next->simpleRemoveLeft(0);
-				}
-				else {
-					if (index >= this->n) {
-						index -= 1;
-					}
-					this->mergeChild(index);
-				}
-			}
-			return s->child[index]->remove(key);
+			return s->child[s->rebalance(index)]->remove(key);
 		}	
 	}
-	return 0;
 }
 
 int BPTreeNode::get(int key) {
@@ -338,6 +291,53 @@ int InterNode::simpleRemoveLeft(int index) {
 	this->child[this->n - 1] = this->child[this->n];
 	this->n -= 1;
 	return 0;
+}
+
+int InterNode::rebalance(int index) {
+	if (this->child[index]->leaf) {
+		LeafNode* child = (LeafNode*)this->child[index];
+		if (index > 0 && this->child[index - 1]->n >= MIN) {
+			LeafNode* prev = (LeafNode*)this->child[index - 1];
+			NodeLocation pKey = this->child[index - 1]->getLocation(this->keys[index - 1]);
+			child->simpleInsert(0, this->keys[index - 1], ((LeafNode*)pKey.ptr)->values[pKey.i]);
+			this->keys[index - 1] = prev->keys[prev->n - 2];
+			prev->leafRemove(prev->n - 1);
+		}
+		else if (index < this->n && this->child[index + 1]->n >= MIN) {
+			LeafNode* next = (LeafNode*)this->child[index + 1];
+			child->simpleInsert(this->child[index]->n, next->keys[0], next->values[0]);
+			this->keys[index] = next->keys[0];
+			next->leafRemove(0);
+		}
+		else {
+			if (index >= this->n) {
+				index -= 1;
+			}
+			this->mergeChild(index);
+		}
+	}
+	else {
+		InterNode* child = (InterNode*)this->child[index];
+		if (index > 0 && this->child[index - 1]->n >= MIN) {
+			InterNode* prev = (InterNode*)this->child[index - 1];
+			child->simpleInsertLeft(0, this->keys[index - 1], prev->child[prev->n]);
+			this->keys[index - 1] = prev->keys[prev->n - 1];
+			prev->simpleRemoveRight(prev->n - 1);
+		}
+		else if (index < this->n && this->child[index + 1]->n >= MIN) {
+			InterNode* next = (InterNode*)this->child[index + 1];
+			child->simpleInsertRight(this->child[index]->n, this->keys[index], next->child[0]);
+			this->keys[index] = next->keys[0];
+			next->simpleRemoveLeft(0);
+		}
+		else {
+			if (index >= this->n) {
+				index -= 1;
+			}
+			this->mergeChild(index);
+		}
+	}
+	return index;
 }
 
 
